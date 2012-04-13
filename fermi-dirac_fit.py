@@ -37,18 +37,16 @@ np_f2 = numpy.vectorize(f2)
 def genf1lookup(pre):
     exp = 10.0**pre
     lookuptable = {}
-    for i in range(-6*int(exp),10*int(exp)):
-        lookuptable[i/pre] = f1(i/pre)
+    for i in range(-100*int(exp),10*int(exp)):
+        lookuptable[i/exp] = f1(i/exp)
 
-
-    f= open("f1lookuptable", 'w')
+    f= open("f1lookuptable" + str(pre) + "dp", 'w') 
     pickle.dump(lookuptable,f)
     f.close()
-
     return
     
-def retrievef1table():
-    f= open("f1lookuptable", 'r')
+def retrievef1table(pre):
+    f= open("f1lookuptable" + str(pre) + "dp", 'r') 
     f1lookuptable = pickle.load(f)
     f.close()
     return f1lookuptable
@@ -65,6 +63,7 @@ def fermi2d(n0, BetaMu, rg, ry, cg, cy, b, mg, my):
 
 def fermi2dfun(y, g, n0, BetaMu, rg, ry, cg, cy, b, mg, my):
     
+    
     try:
         if -6 < BetaMu < 10:
             
@@ -76,11 +75,23 @@ def fermi2dfun(y, g, n0, BetaMu, rg, ry, cg, cy, b, mg, my):
             #f1( BetaMu - f0(BetaMu)/fm1(BetaMu) * ( pow( (g-cg)*magnif/rg, 2) + pow( (y-cy)*magnif/ry,2)))
         else:
             print "BetaMu=%f was outside the expected value" % (BetaMu)
+            return 10E5
     except:
         print "I failed when the parameters were n0=%f, BetaMu=%f, rg=%f, ry=%f, cg=%f, cy=%f, b=%f, mg=%f, my=%f, "\
         % (n0, BetaMu, rg, ry, cg, cy, b, mg, my)
         sys.exit()
     
+    # Code to actually fit the data without using lookup table
+    """
+    try:
+        return n0/f1(BetaMu) *\
+        f1( BetaMu - fq(BetaMu) * ( pow( (g-cg)/rg, 2) + pow( (y-cy)/ry,2))) + b + mg*g + my*y
+        #f1( BetaMu - f0(BetaMu)/fm1(BetaMu) * ( pow( (g-cg)*magnif/rg, 2) + pow( (y-cy)*magnif/ry,2)))
+    except:
+        print "I failed when the parameters were n0=%f, BetaMu=%f, rg=%f, ry=%f, cg=%f, cy=%f, b=%f, mg=%f, my=%f, "\
+        % (n0, BetaMu, rg, ry, cg, cy, b, mg, my)
+    """
+        
 def gaus2d(n0, rg, ry, cg, cy, b, mg, my):
     # Returns a 2D gaussian function function
     return lambda y,g:  n0*\
@@ -108,9 +119,9 @@ def moments(data):
     my = 0.1 # slope of background plane along y
     return height, BetaMu, width_y, width_x, y, x, b, mg, my
     
-def crop(data):
+def crop(data,f):
     height, BetaMu, width_y, width_x, y, x, b, mg, my = moments(data)
-    return data[(x-width_x/0.75):(x+width_x/0.75),(y-width_y/0.75):(y+width_y/0.75)]
+    return data[(x-f*width_x):(x+f*width_x),(y-f*width_y):(y+f*width_y)]
     
 def errorfunc(data):    
     return lambda p: ravel( numpy.vectorize(fermi2d(*p))(*indices(data.shape)) - data)
@@ -131,7 +142,7 @@ def fitfermi2d(data):
 if __name__ == '__main__':
     #Data matrix
     data = import_data.load('','6043')
-    data = crop(data)
+    data = crop(data,3)
     print data.shape
     
     
@@ -139,10 +150,12 @@ if __name__ == '__main__':
     
     #Generate and Retrive lookup table for f1
     
-    pre = 3 #Decimal precision of lookup table
+    pre = 1 #Decimal precision of lookup table
 
+    print "generating lookuptable for f1"
     genf1lookup(pre)
-    f1lookuptable = retrievef1table()
+    print "lookup table complete"
+    f1lookuptable = retrievef1table(pre)
 
     
     
