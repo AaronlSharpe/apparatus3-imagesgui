@@ -25,8 +25,8 @@ from matplotlib.pylab import *
 
 import import_data
 
-import warnings
-warnings.simplefilter('error')
+#import warnings
+#warnings.simplefilter('error')
 
 np_f1 = numpy.vectorize(f1)
 np_f2 = numpy.vectorize(f2)
@@ -37,7 +37,7 @@ np_f2 = numpy.vectorize(f2)
 def genf1lookup(pre):
     exp = 10.0**pre
     lookuptable = {}
-    for i in range(-100*int(exp),10*int(exp)):
+    for i in range(-300*int(exp),10*int(exp)):
         lookuptable[i/exp] = f1(i/exp)
 
     f= open("f1lookuptable" + str(pre) + "dp", 'w') 
@@ -62,8 +62,8 @@ def fermi2d(n0, BetaMu, rg, ry, cg, cy, b, mg, my):
     
 
 def fermi2dfun(y, g, n0, BetaMu, rg, ry, cg, cy, b, mg, my):
-    
-    
+    global itr
+    itr = itr + 1 
     try:
         if -6 < BetaMu < 10:
             
@@ -84,9 +84,14 @@ def fermi2dfun(y, g, n0, BetaMu, rg, ry, cg, cy, b, mg, my):
     # Code to actually fit the data without using lookup table
     """
     try:
+        #if -10 < BetaMu < 10:
         return n0/f1(BetaMu) *\
         f1( BetaMu - fq(BetaMu) * ( pow( (g-cg)/rg, 2) + pow( (y-cy)/ry,2))) + b + mg*g + my*y
-        #f1( BetaMu - f0(BetaMu)/fm1(BetaMu) * ( pow( (g-cg)*magnif/rg, 2) + pow( (y-cy)*magnif/ry,2)))
+            #f1( BetaMu - f0(BetaMu)/fm1(BetaMu) * ( pow( (g-cg)*magnif/rg, 2) + pow( (y-cy)*magnif/ry,2)))
+        #else:
+        #    print "BetaMu=%f was outside the expected value" % (BetaMu)
+            
+        #    return 10E5
     except:
         print "I failed when the parameters were n0=%f, BetaMu=%f, rg=%f, ry=%f, cg=%f, cy=%f, b=%f, mg=%f, my=%f, "\
         % (n0, BetaMu, rg, ry, cg, cy, b, mg, my)
@@ -119,6 +124,7 @@ def moments(data):
     my = 0.1 # slope of background plane along y
     return height, BetaMu, width_y, width_x, y, x, b, mg, my
     
+    
 def crop(data,f):
     height, BetaMu, width_y, width_x, y, x, b, mg, my = moments(data)
     return data[(x-f*width_x):(x+f*width_x),(y-f*width_y):(y+f*width_y)]
@@ -150,7 +156,9 @@ if __name__ == '__main__':
     
     #Generate and Retrive lookup table for f1
     
-    pre = 1 #Decimal precision of lookup table
+    itr = 0 #Iteration counter
+    
+    pre = 3 #Decimal precision of lookup table
 
     print "generating lookuptable for f1"
     genf1lookup(pre)
@@ -175,7 +183,8 @@ if __name__ == '__main__':
     # Comment the line below if you just want to plot the function with the starting parameters
     p, fitdata = fitfermi2d(data)
     #p, fitdata = fitgaus2d(data)
-    
+    print '...Total Errorfunction evaluation time = %.2f seconds\n' % (time.time()-t0)
+    print '...Total Errorfunction iterations = %f \n' % (itr)
     print p
     matshow(   data, cmap=cm.gist_earth_r )
     matshow(fitdata, cmap=cm.gist_earth_r )
